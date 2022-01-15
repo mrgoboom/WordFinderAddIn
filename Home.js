@@ -77,9 +77,7 @@
         let patterns = new Array();
         const PUNCTUATION = `!"#$%&'()*+,\-./:;<=>?@\[\\\]\^_\`{|} ~\\\\`;
         for (let i = 0; i < words.length; i++) {
-            console.log(words[i]);
             let wordPattern = new RegExp(`[${PUNCTUATION}]*${words[i]}[${PUNCTUATION}]*`);
-            console.log(wordPattern.toString());
             patterns.push(wordPattern);
         }
         return patterns;
@@ -97,33 +95,43 @@
     }
 
     function highlightWords(wordPatterns) {
-        Word.run(function (context) {
+        Word.run( async function (context) {
             let range = context.document.getSelection();
             context.load(range, 'isEmpty');
-            let wordsToHighlight;
+            let searchResults = new Array();
 
-            return context.sync()
-                .then(function () {
-                    if (range.isEmpty) {
-                        range = context.document.body.getRange();
-                    }
-                    context.load(range, 'text');
-                })
-                .then(context.sync)
-                .then(function () {
-                    console.log(range.text);
-                    let words = range.text.split(/\s+/);
-                    let wordsMissingFromList = new Array();
+            await context.sync()
+            if (range.isEmpty) {
+                range = context.document.body.getRange();
+            }
+            context.load(range, 'text');
 
-                    for (let i = 0; i < words.length; i++) {
-                        words[i] = words[i].trim();
-                        if (words[i] != "" && !isWordFoundOnList(words[i].toLocaleLowerCase(), wordPatterns)) {
-                            console.log(`Highlight ${words[i]}`);
-                            wordsMissingFromList.push(words[i]);
-                        }
-                    }
+            await context.sync();
+            console.log(range.text);
+            let words = range.text.split(/\s+/);
+            let wordsMissingFromList = new Array();
 
-                })
+            for (let i = 0; i < words.length; i++) {
+                words[i] = words[i].trim();
+                if (words[i] != "" && !isWordFoundOnList(words[i].toLocaleLowerCase(), wordPatterns)) {
+                    console.log(`Highlight ${words[i]}`);
+                    wordsMissingFromList.push(words[i]);
+                }
+            }
+
+            for (let word of wordsMissingFromList) {
+                let result = range.search(word, { matchCase: true, matchWholeWord: true });
+                searchResults.push(result);
+                context.load(result, 'font');
+            }
+
+            await context.sync();
+
+            for (let result of searchResults) {
+                result.items[0].font.highlightColor = '#FFFF00';
+            }
+
+            await context.sync();
         }).catch(errorHandler);
     }
 
