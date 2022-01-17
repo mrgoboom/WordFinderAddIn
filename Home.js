@@ -101,12 +101,14 @@
             let searchResults = new Array();
 
             await context.sync()
+
             if (range.isEmpty) {
                 range = context.document.body.getRange();
             }
             context.load(range, 'text');
 
             await context.sync();
+
             console.log(range.text);
             let words = range.text.split(/\s+/);
             let wordsMissingFromList = new Array();
@@ -114,7 +116,7 @@
             for (let i = 0; i < words.length; i++) {
                 words[i] = words[i].trim();
                 if (words[i] != "" && !isWordFoundOnList(words[i].toLocaleLowerCase(), wordPatterns)) {
-                    console.log(`Highlight ${words[i]}`);
+                    console.log(`Highlight "${words[i]}"`);
                     wordsMissingFromList.push(words[i]);
                 }
             }
@@ -135,6 +137,68 @@
         }).catch(errorHandler);
     }
 
+    const WORD_REG_EXP = /\S*\w+\S*/;
+
+    function calcSentenceLength(sentence) {
+        let len = 0;
+        let words = sentence.split(/\s+/);
+        
+        for (let word of words) {
+            if (WORD_REG_EXP.test(word)) {
+                len++;
+            }
+        }
+        return len;
+    }
+
+    function highlightSentences(maxSentenceLength) {
+        Word.run(async function (context) {
+            let range = context.document.getSelection();
+            context.load(range, 'isEmpty');
+            let searchResults = new Array();
+
+            await context.sync();
+
+            if (range.isEmpty) {
+                range = context.document.body.getRange();
+            }
+            context.load(range, 'text');
+
+            await context.sync();
+
+            let sentences = range.text.split(/[\.\?\!]+/);
+            let longSentences = new Array();
+
+            for (let i = 0; i < sentences.length; i++) {
+                if (sentences[i] == null || !WORD_REG_EXP.test(sentences[i])) {
+                    continue;
+                }
+                console.log(sentences[i]);
+                let words = sentences[i].match(WORD_REG_EXP);
+                sentences[i] = sentences[i].substring(sentences[i].indexOf(words[0]));
+                sentences[i] = sentences[i].trim();
+                if (sentences[i] != "" && calcSentenceLength(sentences[i].toLocaleLowerCase()) > maxSentenceLength) {
+                    console.log(`Highlight: "${sentences[i]}"`);
+                    longSentences.push(sentences[i]);
+                }
+            }
+
+            for (let sentence of longSentences) {
+                let result = range.search(sentence, { matchCase: true });
+                searchResults.push(result);
+                context.load(result, 'font');
+            }
+
+            await context.sync();
+
+            for (let result of searchResults) {
+                result.items[0].font.highlightColor = '#00FFFF';
+            }
+
+            await context.sync();
+        }).catch(errorHandler);
+    }
+
     function highlightComplexity() {
         let settings = getFormInfo();
         let doUseShortWordList = settings["short"].checked;
@@ -145,6 +209,10 @@
         console.log(`Maximum sentence length: ${maxSentenceLength}`);
         let doHighlightSentences = settings["highlightSentences"].checked;
         console.log(`Highlight sentences?: ${doHighlightSentences}`);
+
+        if (doHighlightSentences) {
+            highlightSentences(maxSentenceLength);
+        }
 
         if (doHighlightWords) {
             let wordListFile;
