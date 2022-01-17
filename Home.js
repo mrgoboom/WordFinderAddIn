@@ -1,8 +1,12 @@
-﻿
+
 (function () {
     "use strict";
 
     var messageBanner;
+    let numSentences;
+    let numLongSentences;
+    let numWords;
+    let numMissingWords;
 
     // The initialize function must be run each time a new page is loaded.
     Office.initialize = function (reason) {
@@ -11,6 +15,11 @@
             var element = document.querySelector('.MessageBanner');
             messageBanner = new components.MessageBanner(element);
             messageBanner.hideBanner();
+
+            numWords = 0;
+            numMissingWords = 0;
+            numSentences = 0;
+            numLongSentences = 0;
 
             // If not using Word 2016, use fallback logic.
             if (!Office.context.requirements.isSetSupported('WordApi', '1.1')) {
@@ -26,7 +35,7 @@
             $('#button-text').text("Highlight!");
             $('#button-desc').text("Highlights complex words and long sentences.");
 
-            loadSampleData();
+            //loadSampleData();
 
             // Add a click event handler for the highlight button.
             $('#highlight-button').click(highlightComplexity);
@@ -75,7 +84,7 @@
     function createRegExpArray(wordText) {
         let words = wordText.split(',');
         let patterns = new Array();
-        const PUNCTUATION = `!"#$%&'()*+,\-./:;<=>?@\[\\\]\^_\`{|} ~\\\\`;
+        const PUNCTUATION = `!"#$%&'()*+,\-./:;<=>?@\[\\\]\^_\`{|}~\\\\`;
         for (let i = 0; i < words.length; i++) {
             let wordPattern = new RegExp(`[${PUNCTUATION}]*${words[i]}[${PUNCTUATION}]*`);
             patterns.push(wordPattern);
@@ -95,10 +104,12 @@
     }
 
     function highlightWords(wordPatterns) {
-        Word.run( async function (context) {
+        Word.run(async function (context) {
             let range = context.document.getSelection();
             context.load(range, 'isEmpty');
             let searchResults = new Array();
+            numMissingWords = 0;
+            numWords = 0;
 
             await context.sync()
 
@@ -109,15 +120,19 @@
 
             await context.sync();
 
-            console.log(range.text);
+            //console.log(range.text);
             let words = range.text.split(/\s+/);
             let wordsMissingFromList = new Array();
 
             for (let i = 0; i < words.length; i++) {
                 words[i] = words[i].trim();
-                if (words[i] != "" && !isWordFoundOnList(words[i].toLocaleLowerCase(), wordPatterns)) {
-                    console.log(`Highlight "${words[i]}"`);
-                    wordsMissingFromList.push(words[i]);
+                if (words[i] != "") {
+                    numWords++;
+                    if (!isWordFoundOnList(words[i].toLocaleLowerCase(), wordPatterns)) {
+                        //console.log(`Highlight "${words[i]}"`);
+                        numMissingWords++;
+                        wordsMissingFromList.push(words[i]);
+                    }
                 }
             }
 
@@ -130,7 +145,9 @@
             await context.sync();
 
             for (let result of searchResults) {
-                result.items[0].font.highlightColor = '#FFFF00';
+                for (let i = 0; i < result.items.length; i++) {
+                    result.items[i].font.highlightColor = '#FFFF00';
+                }
             }
 
             await context.sync();
@@ -142,7 +159,7 @@
     function calcSentenceLength(sentence) {
         let len = 0;
         let words = sentence.split(/\s+/);
-        
+
         for (let word of words) {
             if (WORD_REG_EXP.test(word)) {
                 len++;
@@ -156,6 +173,8 @@
             let range = context.document.getSelection();
             context.load(range, 'isEmpty');
             let searchResults = new Array();
+            numSentences = 0;
+            numLongSentences = 0;
 
             await context.sync();
 
@@ -173,13 +192,17 @@
                 if (sentences[i] == null || !WORD_REG_EXP.test(sentences[i])) {
                     continue;
                 }
-                console.log(sentences[i]);
+                //console.log(sentences[i]);
                 let words = sentences[i].match(WORD_REG_EXP);
                 sentences[i] = sentences[i].substring(sentences[i].indexOf(words[0]));
                 sentences[i] = sentences[i].trim();
-                if (sentences[i] != "" && calcSentenceLength(sentences[i].toLocaleLowerCase()) > maxSentenceLength) {
-                    console.log(`Highlight: "${sentences[i]}"`);
-                    longSentences.push(sentences[i]);
+                if (sentences[i] != "") {
+                    numSentences++;
+                    if (calcSentenceLength(sentences[i].toLocaleLowerCase()) > maxSentenceLength) {
+                        //console.log(`Highlight: "${sentences[i]}"`);
+                        numLongSentences++;
+                        longSentences.push(sentences[i]);
+                    }
                 }
             }
 
@@ -192,7 +215,9 @@
             await context.sync();
 
             for (let result of searchResults) {
-                result.items[0].font.highlightColor = '#00FFFF';
+                for (let i = 0; i < result.items.length; i++) {
+                    result.items[i].font.highlightColor = '#00FFFF';
+                }
             }
 
             await context.sync();
@@ -201,12 +226,16 @@
 
     function highlightComplexity() {
         let settings = getFormInfo();
+
         let doUseShortWordList = settings["short"].checked;
         console.log(`Use short word list?: ${doUseShortWordList}`);
+
         let doHighlightWords = settings["highlightWords"].checked;
         console.log(`Highlight words?: ${doHighlightWords}`);
+
         let maxSentenceLength = +settings["maxSentenceLength"].value > 0 ? +settings["maxSentenceLength"].value : 8;
         console.log(`Maximum sentence length: ${maxSentenceLength}`);
+
         let doHighlightSentences = settings["highlightSentences"].checked;
         console.log(`Highlight sentences?: ${doHighlightSentences}`);
 
@@ -224,6 +253,29 @@
             let wordListText = loadFile(wordListFile);
             let wordListPatterns = createRegExpArray(wordListText);
             highlightWords(wordListPatterns);
+        }
+
+        // Create Result Table
+        if (doHighlightWords) {
+            let numWordsCell = document.getElementById("num-words-cell");
+            numWordsCell.innerHTML = "" + numWords;
+
+            let percentWordsCell = document.getElementById("percent-words-cell");
+            percentWordsCell.innerHTML = `${Math.round(100 * (numWords - numMissingWords) / numWords)}%`;
+        } else {
+            let numWordsCell = document.getElementById("num-words-cell");
+            numWordsCell.innerHTML = "N/A";
+
+            let percentWordsCell = document.getElementById("percent-words-cell");
+            percentWordsCell.innerHTML = "N/A";
+        }
+
+        if (doHighlightSentences) {
+            let numSentencesCell = document.getElementById("num-sentences-cell");
+            numSentencesCell.innerHTML = "" + numSentences;
+
+            let percentSentencesCell = document.getElementById("percent-sentences-cell");
+            percentSentencesCell.innerHTML = `${Math.round(100 * numLongSentences / numSentences)}%`;
         }
     }
 
