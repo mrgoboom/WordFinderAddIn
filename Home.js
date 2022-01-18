@@ -70,11 +70,14 @@
     function createRegExpArray(wordText) {
         let words = wordText.split(',');
         let patterns = new Array();
-        const PUNCTUATION = `!"#$%&'()*+,\-./:;<=>?@\[\\\]\^_\`{|}~\\\\`;
+        const PUNCTUATION = `”‘“’!"#$%&'()*+,\\-.\\/:;<=>?@[\\]^_\`{|}~\\\\`;
         for (let i = 0; i < words.length; i++) {
-            words[i] = words[i].trim();
-            let wordPattern = new RegExp(`[${PUNCTUATION}]*${words[i]}[${PUNCTUATION}]*`);
-            patterns.push(wordPattern);
+            words[i] = words[i].toLowerCase().trim();
+            words[i] = words[i].replaceAll("'", "['’]");
+            if (words[i] != "") {
+                let wordPattern = new RegExp(`[${PUNCTUATION}]*${words[i]}[${PUNCTUATION}]*`);
+                patterns.push(wordPattern);
+            }
         }
         return patterns;
     }
@@ -82,7 +85,6 @@
     function isWordFoundOnList(word, patterns) {
         for (let pattern of patterns) {
             let matchArray = word.match(pattern);
-
             if (matchArray != null && word.length == matchArray[0].length) {
                 return true;
             }
@@ -115,7 +117,7 @@
                 words[i] = words[i].trim();
                 if (words[i] != "") {
                     numWords++;
-                    if (!isWordFoundOnList(words[i].toLocaleLowerCase(), wordPatterns)) {
+                    if (!isWordFoundOnList(words[i].toLowerCase(), wordPatterns)) {
                         //console.log(`Highlight "${words[i]}"`);
                         numMissingWords++;
                         wordsMissingFromList.push(words[i]);
@@ -144,7 +146,7 @@
         }).catch(errorHandler);
     }
 
-    const WORD_REG_EXP = /\S*\w+\S*/;
+    const WORD_REG_EXP = /\S*[\w'\-]+\S*/;
 
     function calcSentenceLength(sentence) {
         let len = 0;
@@ -188,7 +190,7 @@
                 sentences[i] = sentences[i].trim();
                 if (sentences[i] != "") {
                     numSentences++;
-                    if (calcSentenceLength(sentences[i].toLocaleLowerCase()) > maxSentenceLength) {
+                    if (calcSentenceLength(sentences[i].toLowerCase()) > maxSentenceLength) {
                         //console.log(`Highlight: "${sentences[i]}"`);
                         numLongSentences++;
                         longSentences.push(sentences[i]);
