@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8" />
@@ -34,8 +34,6 @@
         <div class="padding">
             <br />
             <p class="ms-font-xxl ms-fontColor-neutralSecondary ms-fontWeight-semilight">Word Finder</p>
-            <br />
-            <div class="ms-font-xl ms-fontColor-neutralTertiary">WordFinder helps you keep your writing simple for developing readers.</div>
             <p class="ms-font-m-plus ms-fontColor-neutralTertiary" id="template-description"></p>
             <br /><br />
 
@@ -53,7 +51,7 @@
                     <label for="long">Long Word List</label>
                 </div>
                 <div>
-                    <input type="checkbox" id="highlightWords" name="highlightWords" checked/>
+                    <input type="checkbox" id="highlightWords" name="highlightWords" checked />
                     <label for="highlightWords">Highlight missing words</label>
                 </div>
                 <br />
@@ -61,11 +59,11 @@
                 <div class="padding">
                     <label for="maxSentenceLength">Maximum Sentence Length</label>
                     <input type="text"
-                           id="maxSentenceLength" name="maxSentenceLength" 
-                           placeholder="8"/>
+                           id="maxSentenceLength" name="maxSentenceLength"
+                           placeholder="8" />
                 </div>
                 <div>
-                    <input type="checkbox" id="highlightSentences" name="highlightSentences" checked/>
+                    <input type="checkbox" id="highlightSentences" name="highlightSentences" checked />
                     <label for="highlightSentences">Highlight long sentences</label>
                 </div>
             </form>
@@ -75,7 +73,32 @@
                 <span class="Button-label" id="button-text"></span>
                 <span class="Button-description" id="button-desc"></span>
             </button>
+            <button class="Button Button--primary" id="clear-button">
+                <span class="Button-icon"><i class="ms-Icon ms-Icon--plus"></i></span>
+                <span class="Button-label" id="clear-button-text"></span>
+                <span class="Button-description" id="clear-button-desc"></span>
+            </button>
         </div>
+    </div>
+    <div class="padding" id="table-div">
+        <table id="results-table">
+            <tr>
+                <th>Number of Words</th>
+                <td id="num-words-cell">N/A</td>
+            </tr>
+            <tr>
+                <th>Percentage of Words on List</th>
+                <td id="percent-words-cell">N/A</td>
+            </tr>
+            <tr>
+                <th>Number of Sentences</th>
+                <td id="num-sentences-cell">N/A</td>
+            </tr>
+            <tr>
+                <th>Percentage of Long Sentences</th>
+                <td id="percent-sentences-cell">N/A</td>
+            </tr>
+        </table>
     </div>
     <div class="footer">
         <div class="ms-Grid ms-bgColor-themeSecondary">
