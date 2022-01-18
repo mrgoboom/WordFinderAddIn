@@ -39,27 +39,13 @@
 
             // Add a click event handler for the highlight button.
             $('#highlight-button').click(highlightComplexity);
+
+            $('#clear-button-text').text("Clear");
+            $('#clear-button-desc').text("Clears existing highlighting.");
+
+            $('#clear-button').click(clearHighlighting);
         });
     };
-
-    function loadSampleData() {
-        // Run a batch operation against the Word object model.
-        Word.run(function (context) {
-            // Create a proxy object for the document body.
-            var body = context.document.body;
-
-            // Queue a commmand to clear the contents of the body.
-            body.clear();
-            // Queue a command to insert text into the end of the Word document body.
-            body.insertText(
-                "This is a sample text inserted in the document",
-                Word.InsertLocation.end);
-
-            // Synchronize the document state by executing the queued commands, and return a promise to indicate task completion.
-            return context.sync();
-        })
-            .catch(errorHandler);
-    }
 
     function getFormInfo() {
         let form = document.forms["settings"];
@@ -86,6 +72,7 @@
         let patterns = new Array();
         const PUNCTUATION = `!"#$%&'()*+,\-./:;<=>?@\[\\\]\^_\`{|}~\\\\`;
         for (let i = 0; i < words.length; i++) {
+            words[i] = words[i].trim();
             let wordPattern = new RegExp(`[${PUNCTUATION}]*${words[i]}[${PUNCTUATION}]*`);
             patterns.push(wordPattern);
         }
@@ -103,7 +90,7 @@
         return false;
     }
 
-    function highlightWords(wordPatterns) {
+    function highlightWords(wordPatterns, callback) {
         Word.run(async function (context) {
             let range = context.document.getSelection();
             context.load(range, 'isEmpty');
@@ -149,8 +136,11 @@
                     result.items[i].font.highlightColor = '#FFFF00';
                 }
             }
+            console.log("Highlighted words.");
 
             await context.sync();
+
+            callback();
         }).catch(errorHandler);
     }
 
@@ -168,7 +158,7 @@
         return len;
     }
 
-    function highlightSentences(maxSentenceLength) {
+    function highlightSentences(maxSentenceLength, callback) {
         Word.run(async function (context) {
             let range = context.document.getSelection();
             context.load(range, 'isEmpty');
@@ -219,12 +209,16 @@
                     result.items[i].font.highlightColor = '#00FFFF';
                 }
             }
+            console.log("Highlighted sentences.");
 
             await context.sync();
+
+            callback();
         }).catch(errorHandler);
     }
 
     function highlightComplexity() {
+        clearHighlighting();
         let settings = getFormInfo();
 
         let doUseShortWordList = settings["short"].checked;
@@ -240,7 +234,13 @@
         console.log(`Highlight sentences?: ${doHighlightSentences}`);
 
         if (doHighlightSentences) {
-            highlightSentences(maxSentenceLength);
+            highlightSentences(maxSentenceLength, function () {
+                let numSentencesCell = document.getElementById("num-sentences-cell");
+                numSentencesCell.innerHTML = "" + numSentences;
+
+                let percentSentencesCell = document.getElementById("percent-sentences-cell");
+                percentSentencesCell.innerHTML = `${Math.round(100 * numLongSentences / numSentences)}%`;
+            });
         }
 
         if (doHighlightWords) {
@@ -252,70 +252,30 @@
             }
             let wordListText = loadFile(wordListFile);
             let wordListPatterns = createRegExpArray(wordListText);
-            highlightWords(wordListPatterns);
+            highlightWords(wordListPatterns, function () {
+                let numWordsCell = document.getElementById("num-words-cell");
+                numWordsCell.innerHTML = "" + numWords;
+
+                let percentWordsCell = document.getElementById("percent-words-cell");
+                percentWordsCell.innerHTML = `${Math.round(100 * (numWords - numMissingWords) / numWords)}%`;
+            });
         }
 
-        // Create Result Table
-        if (doHighlightWords) {
-            let numWordsCell = document.getElementById("num-words-cell");
-            numWordsCell.innerHTML = "" + numWords;
-
-            let percentWordsCell = document.getElementById("percent-words-cell");
-            percentWordsCell.innerHTML = `${Math.round(100 * (numWords - numMissingWords) / numWords)}%`;
-        } else {
+        if (!doHighlightWords) {
             let numWordsCell = document.getElementById("num-words-cell");
             numWordsCell.innerHTML = "N/A";
 
             let percentWordsCell = document.getElementById("percent-words-cell");
             percentWordsCell.innerHTML = "N/A";
         }
-
-        if (doHighlightSentences) {
+        if (!doHighlightSentences) {
             let numSentencesCell = document.getElementById("num-sentences-cell");
-            numSentencesCell.innerHTML = "" + numSentences;
+            numSentencesCell.innerHTML = "N/A";
 
             let percentSentencesCell = document.getElementById("percent-sentences-cell");
-            percentSentencesCell.innerHTML = `${Math.round(100 * numLongSentences / numSentences)}%`;
+            percentSentencesCell.innerHTML = "N/A";
         }
     }
-
-    function hightlightLongestWord() {
-        Word.run(function (context) {
-            // Queue a command to get the current selection and then
-            // create a proxy range object with the results.
-            var range = context.document.getSelection();
-
-            // This variable will keep the search results for the longest word.
-            var searchResults;
-
-            // Queue a command to load the range selection result.
-            context.load(range, 'text');
-
-            // Synchronize the document state by executing the queued commands
-            // and return a promise to indicate task completion.
-            return context.sync()
-                .then(function () {
-                    // Get the longest word from the selection.
-                    var words = range.text.split(/\s+/);
-                    var longestWord = words.reduce(function (word1, word2) { return word1.length > word2.length ? word1 : word2; });
-
-                    // Queue a search command.
-                    searchResults = range.search(longestWord, { matchCase: true, matchWholeWord: true });
-
-                    // Queue a commmand to load the font property of the results.
-                    context.load(searchResults, 'font');
-                })
-                .then(context.sync)
-                .then(function () {
-                    // Queue a command to highlight the search results.
-                    searchResults.items[0].font.highlightColor = '#FFFF00'; // Yellow
-                    searchResults.items[0].font.bold = true;
-                })
-                .then(context.sync);
-        })
-            .catch(errorHandler);
-    }
-
 
     function displaySelectedText() {
         Office.context.document.getSelectedDataAsync(Office.CoercionType.Text,
@@ -326,6 +286,27 @@
                     showNotification('Error:', result.error.message);
                 }
             });
+    }
+
+    function clearHighlighting() {
+        Word.run(function (context) {
+            let range = context.document.getSelection();
+            context.load(range, 'isEmpty');
+
+            return context.sync()
+                .then(function () {
+                    if (range.isEmpty) {
+                        range = context.document.body.getRange();
+                    }
+                    context.load(range, 'font');
+                })
+                .then(context.sync)
+                .then(function () {
+                    range.font.highlightColor = null;
+                    console.log("Highlight color cleared.");
+                })
+                .then(context.sync)
+        }).catch(errorHandler);
     }
 
     //$$(Helper function for treating errors, $loc_script_taskpane_home_js_comment34$)$$
