@@ -31,7 +31,7 @@
                 return;
             }
 
-            $("#template-description").text("WordFinder highlights selected words not on the specified list or sentences longer than the specified length. This has changed.");
+            $("#template-description").text("WordFinder highlights selected words not on the specified list or sentences longer than the specified length.");
             $('#button-text').text("Highlight!");
             $('#button-desc').text("Highlights complex words and long sentences.");
 
