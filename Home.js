@@ -61,6 +61,10 @@
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", inputFile, false);
         xmlhttp.send();
+
+        //let debugCell = document.getElementById("debug-cell");
+        //debugCell.innerHTML = "" + xmlhttp.status;
+
         if (xmlhttp.status == 200) {
             result = xmlhttp.responseText;
         }
@@ -73,7 +77,7 @@
         const PUNCTUATION = `”‘“’!"#$%&'()*+,\\-.\\/:;<=>?@[\\]^_\`{|}~\\\\`;
         for (let i = 0; i < words.length; i++) {
             words[i] = words[i].toLowerCase().trim();
-            words[i] = words[i].replaceAll("'", "['’]");
+            words[i] = words[i].replaceAll("'", "['‘’]");
             if (words[i] != "") {
                 let wordPattern = new RegExp(`[${PUNCTUATION}]*${words[i]}[${PUNCTUATION}]*`);
                 patterns.push(wordPattern);
@@ -246,11 +250,13 @@
         }
 
         if (doHighlightWords) {
+            //let debugCell = document.getElementById("debug-cell");
+            //debugCell.innerHTML = document.location.pathname; //  /WordFinderAddIn/Home.html
             let wordListFile;
             if (doUseShortWordList) {
-                wordListFile = "/Content/Wordlists/shortlist.txt";
+                wordListFile = "/WordFinderAddIn/Content/Wordlists/shortlist.txt";
             } else {
-                wordListFile = "/Content/Wordlists/longlist.txt";
+                wordListFile = "/WordFinderAddIn/Content/Wordlists/longlist.txt";
             }
             let wordListText = loadFile(wordListFile);
             let wordListPatterns = createRegExpArray(wordListText);
