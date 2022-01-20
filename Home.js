@@ -203,9 +203,33 @@
             }
 
             for (let sentence of longSentences) {
-                let result = range.search(sentence, { matchCase: true });
-                searchResults.push(result);
-                context.load(result, 'font');
+                if (sentence.length < 256) {
+                    let result = range.search(sentence, { matchCase: true });
+                    searchResults.push(result);
+                    context.load(result, 'font');
+                } else {
+                    let startFragment;
+                    let endFragment = sentence;
+                    while (endFragment.length > 510) {
+                        startFragment = endFragment.substring(0, 255);
+                        endFragment = endFragment.substring(255);
+
+                        let result = range.search(startFragment, { matchCase: true });
+                        searchResults.push(result);
+                        context.load(result, 'font');
+                    }
+                    let halfIndex = Math.ceil(endFragment.length / 2);
+                    startFragment = endFragment.substring(0, halfIndex);
+                    endFragment = endFragment.substring(halfIndex);
+
+                    let startResult = range.search(startFragment, { matchCase: true });
+                    searchResults.push(startResult);
+                    context.load(startResult, 'font');
+
+                    let endResult = range.search(endFragment, { matchCase: true });
+                    searchResults.push(endResult);
+                    context.load(endResult, 'font');
+                }
             }
 
             await context.sync();
