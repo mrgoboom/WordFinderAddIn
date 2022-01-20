@@ -177,11 +177,20 @@
             if (range.isEmpty) {
                 range = context.document.body.getRange();
             }
-            context.load(range, 'text');
+
+            context.load(range, 'paragraphs');
 
             await context.sync();
 
-            let sentences = range.text.split(/[\.\?\!]+/);
+            let sentences = new Array();
+
+            for (let i = 0; i < range.paragraphs.items.length; i++) {
+                if (range.paragraphs.items[i].text) {
+                    let newSentences = range.paragraphs.items[i].text.split(/[\.\?\!]+/);
+                    sentences = sentences.concat(newSentences);
+                }
+            }
+
             let longSentences = new Array();
 
             for (let i = 0; i < sentences.length; i++) {
